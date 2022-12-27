@@ -20,7 +20,7 @@ type Point struct {
 }
 
 type Rope struct {
-	knots []Point
+	knots []*Point
 }
 
 func euclideanDistance(a *Point, b *Point) float64 {
@@ -37,43 +37,57 @@ func shouldMoveTail(h *Point, t *Point) bool {
 	return distance > 1.0
 }
 
-func getTailPositions(movements []Movement) map[Point]bool {
-	head := Point{}
-	tail := Point{}
+func getTailPositions(movements []Movement, rope *Rope) map[Point]bool {
+	head := rope.knots[0]
+	tail := rope.knots[len(rope.knots)-1]
+	subHead := &Point{}
+	subTail := &Point{}
 	positions := make(map[Point]bool)
-	positions[tail] = true
+	positions[*tail] = true
 
 	for _, movement := range movements {
 		for i := 0; i < movement.steps; i++ {
 			switch movement.direction {
 			case "L":
 				head.x--
-				if shouldMoveTail(&head, &tail) {
-					tail.x = head.x + 1
-					tail.y = head.y
-				}
 			case "U":
 				head.y++
-				if shouldMoveTail(&head, &tail) {
-					tail.x = head.x
-					tail.y = head.y - 1
-				}
 			case "R":
 				head.x++
-				if shouldMoveTail(&head, &tail) {
-					tail.x = head.x - 1
-					tail.y = head.y
-				}
 			case "D":
 				head.y--
-				if shouldMoveTail(&head, &tail) {
-					tail.x = head.x
-					tail.y = head.y + 1
+			}
+
+			for j := 0; j < len(rope.knots)-1; j++ {
+				subHead = rope.knots[j]
+				subTail = rope.knots[j+1]
+				if shouldMoveTail(subHead, subTail) {
+					if subHead.x == subTail.x && subHead.y > subTail.y {
+						subTail.y++
+					} else if subHead.x == subTail.x && subHead.y < subTail.y {
+						subTail.y--
+					} else if subHead.y == subTail.y && subHead.x > subTail.x {
+						subTail.x++
+					} else if subHead.y == subTail.y && subHead.x < subTail.x {
+						subTail.x--
+					} else if subHead.y > subTail.y && subHead.x > subTail.x {
+						subTail.x++
+						subTail.y++
+					} else if subHead.y > subTail.y && subHead.x < subTail.x {
+						subTail.x--
+						subTail.y++
+					} else if subHead.y < subTail.y && subHead.x > subTail.x {
+						subTail.x++
+						subTail.y--
+					} else if subHead.y < subTail.y && subHead.x < subTail.x {
+						subTail.x--
+						subTail.y--
+					}
 				}
 			}
 
-			if _, ok := positions[tail]; !ok {
-				positions[tail] = true
+			if _, ok := positions[*tail]; !ok {
+				positions[*tail] = true
 			}
 		}
 	}
@@ -109,6 +123,10 @@ func main() {
 	content := string(bytes)
 
 	movements := parseMovements(strings.Split(content, "\n"))
-	positions := getTailPositions(movements)
+	rope := Rope{}
+	for i := 0; i < 10; i++ {
+		rope.knots = append(rope.knots, &Point{})
+	}
+	positions := getTailPositions(movements, &rope)
 	fmt.Printf("%v\n", len(positions))
 }
