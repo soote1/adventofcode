@@ -41,6 +41,49 @@ func getSignalStrengths(cycles map[int]bool, instructions []Instruction) []int {
 	return strengths
 }
 
+func draw(instructions []Instruction) []string {
+	image := []string{}
+	instructionCycle := 0
+	programCycle := 0
+	x := 1
+	i := 0
+	crtPos := 0
+	rowLen := 39
+	row := ""
+
+	for i < len(instructions) {
+		instructionCycle++
+		programCycle++
+
+		if crtPos > rowLen {
+			image = append(image, row)
+			crtPos = 0
+			row = ""
+		}
+
+		// check if draw
+		if x-1 <= crtPos && crtPos <= x+1 {
+			row += "#"
+		} else {
+			row += "."
+		}
+
+		if instructionCycle == instructions[i].cost {
+			if instructions[i].op == "addx" {
+				x += instructions[i].value
+			}
+			instructionCycle = 0
+			i++
+		}
+
+		crtPos++
+	}
+
+	image = append(image, row)
+
+	return image
+}
+
 func parseIntructions(lines []string) []Instruction {
 	instructions := []Instruction{}
 	instruction := Instruction{}
@@ -87,4 +130,8 @@ func main() {
 		sum += s
 	}
 	fmt.Printf("%v\n", sum)
+	image := draw(instructions)
+	for _, row := range image {
+		fmt.Println(row)
+	}
 }
