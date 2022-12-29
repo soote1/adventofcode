@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -94,16 +93,14 @@ func loadInput(fileName string) []string {
 	return input
 }
 
-func changeWorryLevel(worryLevel int, operation string, factor int) int {
+func changeWorryLevel(worryLevel int, op string, factor int, maxVal int) int {
 	result := 0
 
-	switch operation {
+	switch op {
 	case "*":
-		result = worryLevel * factor
+		result = (worryLevel * factor) % maxVal
 	case "+":
-		result = worryLevel + factor
-	case "⌊/⌋":
-		result = int(math.Floor(float64(worryLevel) / float64(factor)))
+		result = (worryLevel + factor) % maxVal
 	}
 
 	return result
@@ -117,12 +114,20 @@ func testWorryLevel(worryLevel int, op string, value int) bool {
 	panic("unsupported test operation")
 }
 
-func runSimulation(rounds int, monkeys []*Monkey) {
+func runSimulation(rounds int, monkeys []*Monkey) map[int]int {
 	worryLevel := 0
 	op := ""
 	value := 0
 	m := 0
 	inspectedItems := make(map[int]int)
+
+	// calculate common divisor to be used as mod n
+	cd := 1
+	for _, m := range monkeys {
+		value, _ := strconv.Atoi(m.test.value)
+		cd *= value
+	}
+
 	for i := 0; i < rounds; i++ {
 		for j, monkey := range monkeys {
 			for len(monkey.items) > 0 {
@@ -133,13 +138,11 @@ func runSimulation(rounds int, monkeys []*Monkey) {
 				op = monkey.worryLevelChange.op
 				if monkey.worryLevelChange.value == "old" {
 					value = worryLevel
-					worryLevel = changeWorryLevel(worryLevel, op, value)
+					worryLevel = changeWorryLevel(worryLevel, op, value, cd)
 				} else {
 					value, _ = strconv.Atoi(monkey.worryLevelChange.value)
-					worryLevel = changeWorryLevel(worryLevel, op, value)
+					worryLevel = changeWorryLevel(worryLevel, op, value, cd)
 				}
-				// reduce worry level
-				worryLevel = changeWorryLevel(worryLevel, "⌊/⌋", 3)
 				// test worry level
 				op = monkey.test.evaluation
 				value, _ = strconv.Atoi(monkey.test.value)
@@ -158,11 +161,39 @@ func runSimulation(rounds int, monkeys []*Monkey) {
 		}
 	}
 
-	fmt.Println(inspectedItems)
+	return inspectedItems
+}
+
+func calculateMonkeyBusinessLevel(inspectedItems map[int]int, count int) int {
+	var maxItem int
+	var maxItemIndex int
+	maxItems := []int{}
+
+	for i := 0; i < count; i++ {
+		maxItem = 0
+		maxItemIndex = -1
+		for k, v := range inspectedItems {
+			if v > maxItem {
+				maxItem = v
+				maxItemIndex = k
+			}
+		}
+		maxItems = append(maxItems, maxItem)
+		delete(inspectedItems, maxItemIndex)
+	}
+
+	monkeyBusinessLevel := 1
+	for _, item := range maxItems {
+		monkeyBusinessLevel *= item
+	}
+
+	return monkeyBusinessLevel
 }
 
 func main() {
 	input := loadInput(os.Args[1])
 	monkeys := parseInput(input)
-	runSimulation(20, monkeys)
+	inspectedItems := runSimulation(10000, monkeys)
+	monkeyBusinessLevel := calculateMonkeyBusinessLevel(inspectedItems, 2)
+	fmt.Println(monkeyBusinessLevel)
 }
