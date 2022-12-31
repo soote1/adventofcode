@@ -68,7 +68,7 @@ func addNeighbor(pq *PriorityQueue, node *Node, dist int, dists *[]int) {
 func minPathLen(matrix [][]*Node, start *Node, end *Node) int {
 	var neighbor *Node
 	var node *Node
-	var minLen int
+	var minLen int = math.MaxInt
 	var newDist int
 
 	pending := &PriorityQueue{&Item{value: start}}
@@ -141,6 +141,18 @@ func findStartEnd(matrix [][]*Node) (*Node, *Node) {
 	return start, end
 }
 
+func findStartingPoints(matrix [][]*Node) []*Node {
+	points := []*Node{}
+	for i := 0; i < len(matrix); i++ {
+		for j := 0; j < len(matrix[0]); j++ {
+			if matrix[i][j].label == 'S' || matrix[i][j].label == 'a' {
+				points = append(points, matrix[i][j])
+			}
+		}
+	}
+	return points
+}
+
 func shortestPathLen(matrix [][]*Node) int {
 	start, end := findStartEnd(matrix)
 	return minPathLen(matrix, start, end)
@@ -194,7 +206,24 @@ func loadInput(fileName string) []string {
 
 func main() {
 	input := loadInput(os.Args[1])
+	//matrix := parseInput(input)
+	//shortestPathLen := shortestPathLen(matrix)
+	//fmt.Println(shortestPathLen)
+	//shortestStartingPoint := shortestStartingPoint(parseInput(input))
 	matrix := parseInput(input)
-	shortestPathLen := shortestPathLen(matrix)
-	fmt.Println(shortestPathLen)
+	length := 0
+	minLength := math.MaxInt
+	startingPoints := findStartingPoints(matrix)
+	for _, start := range startingPoints {
+		// I know, I shouldn't need to reload matrix and find end on every run
+		// but my original implementation used pointers and this was the quickest
+		// change to solve part 2 :P
+		matrix := parseInput(input)
+		_, end := findStartEnd(matrix)
+		length = minPathLen(matrix, start, end)
+		if length < minLength {
+			minLength = length
+		}
+	}
+	fmt.Println(minLength)
 }
