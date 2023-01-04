@@ -64,6 +64,28 @@ func collectSortedPacketIndices(packets []any) []int {
     return sortedPacketIndices
 }
 
+func sortPackets(packets []any) []any {
+    var swaps int
+    var aux any
+    for {
+        swaps = 0
+        for i := 0; i < len(packets)-1; i++ {
+            if diff(packets[i], packets[i+1]) > 0 {
+                aux = packets[i]
+                packets[i] = packets[i+1]
+                packets[i+1] = aux
+                swaps++
+            }
+        }
+
+        if swaps == 0 {
+            break
+        }
+    }
+
+    return packets
+}
+
 func buildInt(runes []rune) int {
     factor := 1
     number := 0
@@ -148,4 +170,16 @@ func main() {
         sum += i
     }
     fmt.Println(sum)
+    start := []any{[]any{2}}
+    end := []any{[]any{6}}
+    packets = append(packets, start)
+    packets = append(packets, end)
+    sortedPackets := sortPackets(packets)
+    dividers := []int{}
+    for i, packet := range sortedPackets {
+        if diff(packet, start) == 0 || diff(packet, end) == 0 {
+            dividers = append(dividers, i+1)
+        }
+    }
+    fmt.Println(dividers[0]*dividers[1])
 }
