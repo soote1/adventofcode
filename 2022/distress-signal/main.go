@@ -2,14 +2,66 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"os"
+    "fmt"
 )
 
-func countSortedPackets(packets []any) {
-    for _, packet := range packets {
-        fmt.Println(packet)
+func diff(p1 any, p2 any) int {
+    state := 0
+
+    if x, ok := p1.(int); ok {
+        if y, ok := p2.(int); ok {
+            return x - y
+        } else {
+            p1 = []any{x}
+        }
+    } else {
+        if y, ok := p2.(int); ok {
+            p2 = []any{y}
+        }
     }
+
+
+    s1, ok := p1.([]any)
+    if !ok {
+        panic("can convert p1 to []any")
+    }
+
+    s2, ok := p2.([]any)
+    if !ok {
+        panic("can convert p2 to []any")
+    }
+
+    for i := 0; i < len(s1); i++ {
+        if i == len(s2) {
+            break
+        }
+        state = diff(s1[i], s2[i])
+        if state < 0 || state > 0 {
+            break
+        }
+    }
+
+    if state == 0 {
+        if len(s1) < len(s2) {
+            state = -1
+        }
+        if len(s1) > len(s2) {
+            state = 1
+        }
+    }
+
+    return state
+}
+
+func collectSortedPacketIndices(packets []any) []int {
+    sortedPacketIndices := []int{}
+    for i, j := 1, 1; i < len(packets); i, j = i+2, j+1 {
+        if diff(packets[i-1], packets[i]) < 0 {
+            sortedPacketIndices = append(sortedPacketIndices, j)
+        }
+    }
+    return sortedPacketIndices
 }
 
 func buildInt(runes []rune) int {
@@ -90,5 +142,10 @@ func loadInput(filename string) []string {
 func main() {
     input := loadInput(os.Args[1])
     packets := parseInput(input)
-    countSortedPackets(packets)
+    sortedPacketIndices := collectSortedPacketIndices(packets)
+    sum := 0
+    for _, i := range sortedPacketIndices {
+        sum += i
+    }
+    fmt.Println(sum)
 }
