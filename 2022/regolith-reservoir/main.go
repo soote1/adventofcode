@@ -13,17 +13,134 @@ type Position struct {
 	y int
 }
 
+func canMove(p Position, r *map[Position]bool, s *map[Position]bool) bool {
+	isSand, _ := (*s)[p]
+	isRock, _ := (*r)[p]
+	return !isSand && !isRock
+}
+
+func generateSand(rocks *map[Position]bool) *map[Position]bool {
+	var moves int
+	var nextMove string
+	var position Position
+	sand := make(map[Position]bool)
+	for {
+		nextMove = "down"
+		position.x = 500
+		position.y = 0
+		moves = 0
+		for nextMove != "" {
+			switch nextMove {
+			case "down":
+				position.y++
+				if !canMove(position, rocks, &sand) {
+					nextMove = "down-left"
+					position.y--
+				} else {
+					moves++
+					nextMove = "down"
+				}
+			case "down-left":
+				position.y++
+				position.x--
+				if !canMove(position, rocks, &sand) {
+					nextMove = "down-right"
+					position.y--
+					position.x++
+				} else {
+					moves++
+					nextMove = "down"
+				}
+			case "down-right":
+				position.y++
+				position.x++
+				if !canMove(position, rocks, &sand) {
+					position.y--
+					position.x--
+					sand[position] = true
+					nextMove = ""
+				} else {
+					moves++
+					nextMove = "down"
+				}
+			}
+		}
+		if moves == 0 {
+			break
+		}
+	}
+	return &sand
+}
+
+func generateLine(p1 Position, p2 Position) []Position {
+	i := 0
+	line := []Position{p1, p2}
+	position := Position{}
+
+	if p1.x == p2.x {
+		i = p1.y
+	} else if p1.y == p2.y {
+		i = p1.x
+	} else {
+		panic("Can't draw line")
+	}
+
+	for {
+		if p1.x == p2.x {
+			if p1.y < p2.y {
+				i++
+			}
+			if p1.y > p2.y {
+				i--
+			}
+			if i == p2.y {
+				break
+			}
+			position.x = p1.x
+			position.y = i
+		} else {
+			if p1.x < p2.x {
+				i++
+			}
+			if p1.x > p2.x {
+				i--
+			}
+			if i == p2.x {
+				break
+			}
+			position.x = i
+			position.y = p1.y
+		}
+		line = append(line, position)
+	}
+
+	return line
+}
+
 func parseInput(input []string) map[Position]bool {
+	start := Position{}
+	end := Position{}
 	positions := make(map[Position]bool)
 
 	for _, line := range input {
+		if line == "" {
+			continue
+		}
 		points := strings.Split(line, "->")
-		for _, p := range points {
+		for i, p := range points {
 			p = strings.TrimSpace(p)
 			coordinates := strings.Split(p, ",")
 			x, _ := strconv.Atoi(coordinates[0])
 			y, _ := strconv.Atoi(coordinates[1])
-			positions[Position{x: x, y: y}] = true
+			end.x = x
+			end.y = y
+			if i >= 1 {
+				line := generateLine(start, end)
+				for _, p := range line {
+					positions[p] = true
+				}
+			}
+			start = end
 		}
 	}
 
@@ -51,4 +168,6 @@ func main() {
 	input := loadInput(os.Args[1])
 	positions := parseInput(input)
 	fmt.Println(positions)
+	sand := generateSand(&positions)
+	fmt.Println(sand)
 }
