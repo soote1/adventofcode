@@ -13,10 +13,10 @@ type Position struct {
 	y int
 }
 
-func canMove(p Position, r *map[Position]bool, s *map[Position]bool) bool {
+func canMove(p Position, r *map[Position]bool, s *map[Position]bool, limit Position) bool {
 	isSand, _ := (*s)[p]
 	isRock, _ := (*r)[p]
-	return !isSand && !isRock
+	return !isSand && !isRock && p.y < limit.y+2
 }
 
 func generateSand(rocks *map[Position]bool, limit Position) *map[Position]bool {
@@ -30,14 +30,10 @@ func generateSand(rocks *map[Position]bool, limit Position) *map[Position]bool {
 		position.y = 0
 		moves = 0
 		for nextMove != "" {
-            if position.y >= limit.y {
-                moves = 0
-                break
-            }
 			switch nextMove {
 			case "down":
 				position.y++
-				if !canMove(position, rocks, &sand) {
+				if !canMove(position, rocks, &sand, limit) {
 					nextMove = "down-left"
 					position.y--
 				} else {
@@ -47,7 +43,7 @@ func generateSand(rocks *map[Position]bool, limit Position) *map[Position]bool {
 			case "down-left":
 				position.y++
 				position.x--
-				if !canMove(position, rocks, &sand) {
+				if !canMove(position, rocks, &sand, limit) {
 					nextMove = "down-right"
 					position.y--
 					position.x++
@@ -58,7 +54,7 @@ func generateSand(rocks *map[Position]bool, limit Position) *map[Position]bool {
 			case "down-right":
 				position.y++
 				position.x++
-				if !canMove(position, rocks, &sand) {
+				if !canMove(position, rocks, &sand, limit) {
 					position.y--
 					position.x--
 					sand[position] = true
@@ -125,7 +121,7 @@ func parseInput(input []string) (map[Position]bool, Position) {
 	start := Position{}
 	end := Position{}
 	positions := make(map[Position]bool)
-    limit := Position{}
+	limit := Position{}
 
 	for _, line := range input {
 		if line == "" {
@@ -139,9 +135,9 @@ func parseInput(input []string) (map[Position]bool, Position) {
 			y, _ := strconv.Atoi(coordinates[1])
 			end.x = x
 			end.y = y
-            if end.y > limit.y {
-                limit = end
-            }
+			if end.y > limit.y {
+				limit = end
+			}
 			if i >= 1 {
 				line := generateLine(start, end)
 				for _, p := range line {
