@@ -19,7 +19,7 @@ func canMove(p Position, r *map[Position]bool, s *map[Position]bool) bool {
 	return !isSand && !isRock
 }
 
-func generateSand(rocks *map[Position]bool) *map[Position]bool {
+func generateSand(rocks *map[Position]bool, limit Position) *map[Position]bool {
 	var moves int
 	var nextMove string
 	var position Position
@@ -30,6 +30,10 @@ func generateSand(rocks *map[Position]bool) *map[Position]bool {
 		position.y = 0
 		moves = 0
 		for nextMove != "" {
+            if position.y >= limit.y {
+                moves = 0
+                break
+            }
 			switch nextMove {
 			case "down":
 				position.y++
@@ -117,10 +121,11 @@ func generateLine(p1 Position, p2 Position) []Position {
 	return line
 }
 
-func parseInput(input []string) map[Position]bool {
+func parseInput(input []string) (map[Position]bool, Position) {
 	start := Position{}
 	end := Position{}
 	positions := make(map[Position]bool)
+    limit := Position{}
 
 	for _, line := range input {
 		if line == "" {
@@ -134,6 +139,9 @@ func parseInput(input []string) map[Position]bool {
 			y, _ := strconv.Atoi(coordinates[1])
 			end.x = x
 			end.y = y
+            if end.y > limit.y {
+                limit = end
+            }
 			if i >= 1 {
 				line := generateLine(start, end)
 				for _, p := range line {
@@ -144,7 +152,7 @@ func parseInput(input []string) map[Position]bool {
 		}
 	}
 
-	return positions
+	return positions, limit
 }
 
 func loadInput(fileName string) []string {
@@ -166,8 +174,8 @@ func loadInput(fileName string) []string {
 
 func main() {
 	input := loadInput(os.Args[1])
-	positions := parseInput(input)
+	positions, limit := parseInput(input)
 	fmt.Println(positions)
-	sand := generateSand(&positions)
-	fmt.Println(sand)
+	sand := generateSand(&positions, limit)
+	fmt.Println(len(*sand))
 }
