@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -67,9 +68,7 @@ func calculateExclusionZone(sensors []Sensor) *ExclusionZone {
 	return &exclusionZone
 }
 
-func countExcludedCells(ez *ExclusionZone, s []Sensor, row int) int {
-	beacons := make(map[Beacon]bool)
-	count := 0
+func getNonOverlappingSegments(ez *ExclusionZone, row int) []Segment {
 	segments := ez.rows[row]
 	sort.Slice(segments, func(i, j int) bool {
 		return segments[i].start.x < segments[j].start.x
@@ -87,10 +86,16 @@ func countExcludedCells(ez *ExclusionZone, s []Sensor, row int) int {
 			nonOverlappingSegments = append(nonOverlappingSegments, currentSegment)
 		}
 	}
-	for _, segment := range nonOverlappingSegments {
+	return nonOverlappingSegments
+}
+
+func countExcludedCells(segments []Segment, sensors []Sensor, row int) int {
+	beacons := make(map[Beacon]bool)
+	count := 0
+	for _, segment := range segments {
 		count += (segment.end.x - segment.start.x) + 1
 	}
-	for _, sensor := range s {
+	for _, sensor := range sensors {
 		if _, ok := beacons[sensor.closestBeacon]; !ok {
 			if sensor.closestBeacon.location.y == row {
 				count--
@@ -98,8 +103,24 @@ func countExcludedCells(ez *ExclusionZone, s []Sensor, row int) int {
 			beacons[sensor.closestBeacon] = true
 		}
 	}
-
 	return count
+}
+
+func findDistressBeacon(ez *ExclusionZone, lowerLimit int, upperLimit int) (Beacon, error) {
+	beacon := Beacon{}
+	for i := 0; i <= upperLimit; i++ {
+		segments := getNonOverlappingSegments(ez, i)
+		for j := 1; j < len(segments); j++ {
+			if segments[j-1].end.x >= 0 {
+				if (segments[j].start.x - segments[j-1].end.x) >= 2 {
+					beacon.location.x = segments[j-1].end.x + 1
+					beacon.location.y = i
+					return beacon, nil
+				}
+			}
+		}
+	}
+	return beacon, errors.New("distress beacon not found")
 }
 
 func collectNumber(offset *int, data string) int {
@@ -158,9 +179,23 @@ func main() {
 	if err != nil {
 		panic("need to provide row number")
 	}
+	lowerLimit, err := strconv.Atoi(os.Args[3])
+	if err != nil {
+		panic("lower limit needs to be a number")
+	}
+	upperLimit, err := strconv.Atoi(os.Args[4])
+	if err != nil {
+		panic("upper limit needs to be a number")
+	}
 	input := loadInput(inputFile)
 	sensors := parseInput(input)
 	exclusionZone := calculateExclusionZone(sensors)
-	excludedCells := countExcludedCells(exclusionZone, sensors, row)
+	nonOverlappingSegments := getNonOverlappingSegments(exclusionZone, row)
+	excludedCells := countExcludedCells(nonOverlappingSegments, sensors, row)
+	distressBeacon, err := findDistressBeacon(exclusionZone, lowerLimit, upperLimit)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println(excludedCells)
+	fmt.Println((distressBeacon.location.x * 4000000) + distressBeacon.location.y)
 }
