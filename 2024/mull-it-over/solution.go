@@ -14,8 +14,7 @@ func check(e error) {
 
 type Instruction struct {
 	action string
-	x      int
-	y      int
+	values []int
 }
 
 func main() {
@@ -35,12 +34,56 @@ func main() {
 			x, y = 0, 0
 			numbers_collected = 0
 			if data[i] == 'm' {
-				state = "collect_start"
+				state = "collect_mul"
+				j = i
+			} else if data[i] == 'd' {
+				state = "collect_do_or_dont"
 				j = i
 			} else {
 				i += 1
 			}
-		case "collect_start":
+		case "collect_do_or_dont":
+			target := "do()"
+			p := j
+			valid := true
+			for q := range target {
+				if p == len(data) {
+					break
+				}
+				if target[q] != data[p] {
+					valid = false
+					break
+				}
+				p += 1
+			}
+			if valid {
+				state = "search"
+				instructions = append(instructions, Instruction{action: "do"})
+				i += len(target)
+			} else {
+				target = "don't()"
+				valid = true
+				p = j
+				for q := range target {
+					if p == len(data) {
+						break
+					}
+					if target[q] != data[p] {
+						valid = false
+						break
+					}
+					p += 1
+				}
+				if valid {
+					state = "search"
+					instructions = append(instructions, Instruction{action: "don't"})
+					i += len(target)
+				} else {
+					state = "search"
+					i += 1
+				}
+			}
+		case "collect_mul":
 			target := "mul("
 			p := j
 			valid := true
@@ -87,13 +130,11 @@ func main() {
 					state = "collect_comma"
 					j = p
 					numbers_collected += 1
-					fmt.Println(string(number))
 					x, _ = strconv.Atoi(string(number))
 				} else if numbers_collected == 1 {
 					state = "collect_end"
 					j = p
 					numbers_collected += 1
-					fmt.Println(string(number))
 					y, _ = strconv.Atoi(string(number))
 				} else {
 					panic("invalid state")
@@ -112,7 +153,7 @@ func main() {
 			}
 		case "collect_end":
 			if data[j] == ')' {
-				instructions = append(instructions, Instruction{action: "mul", x: x, y: y})
+				instructions = append(instructions, Instruction{action: "mul", values: []int{x, y}})
 				products = append(products, x*y)
 
 			}
@@ -121,8 +162,18 @@ func main() {
 		}
 	}
 	sum := 0
-	for i := range products {
-		sum += products[i]
+	do_mul := true
+	for i := range instructions {
+		switch instructions[i].action {
+		case "do":
+			do_mul = true
+		case "don't":
+			do_mul = false
+		case "mul":
+			if do_mul {
+				sum += instructions[i].values[0] * instructions[i].values[1]
+			}
+		}
 	}
 	fmt.Println(sum)
 }
