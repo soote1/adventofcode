@@ -36,6 +36,27 @@ func checkError(err error) {
 	}
 }
 
+func sort(update []string, after map[string]map[string]bool) []string {
+	i := 0
+	for i < len(update) {
+		j := i
+		k := i + 1
+		swaps := 0
+		for k < len(update) {
+			if !after[update[j]][update[k]] {
+				update[j], update[k] = update[k], update[j]
+				j = k
+				swaps += 1
+			}
+			k += 1
+		}
+		if swaps == 0 {
+			i += 1
+		}
+	}
+	return update
+}
+
 func main() {
 	file, err := os.Open("input.txt")
 	checkError(err)
@@ -67,12 +88,19 @@ func main() {
 		}
 	}
 	sum := 0
+	sumFixed := 0
 	for i := range updates {
 		if isCorrect(updates[i], after, before) {
 			x, err := strconv.Atoi(updates[i][len(updates[i])/2])
 			checkError(err)
 			sum += x
+		} else {
+			sorted := sort(updates[i], after)
+			x, err := strconv.Atoi(sorted[len(sorted)/2])
+			checkError(err)
+			sumFixed += x
 		}
 	}
 	fmt.Println(sum)
+	fmt.Println(sumFixed)
 }
