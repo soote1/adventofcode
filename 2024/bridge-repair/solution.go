@@ -27,7 +27,7 @@ func toInt(x string) int {
 }
 
 func buildOpTree(values []string) []Node {
-	operators := map[string]string{"*": "+", "+": "*"}
+	operators := map[string]string{"*": "+", "+": "||", "||": "*"}
 	currentOperator := "*"
 	nodes := []Node{{value: toInt(values[0])}}
 	for i := range values {
@@ -35,7 +35,7 @@ func buildOpTree(values []string) []Node {
 			continue
 		}
 		prevOperator := currentOperator
-		j := int(math.Pow(float64(2), float64(i)))
+		j := int(math.Pow(float64(3), float64(i)))
 		for range j {
 			currentOperator := operators[prevOperator]
 			node := Node{value: toInt(values[i]), operator: currentOperator}
@@ -53,17 +53,41 @@ func isValidOpTree(tree []Node, result int) bool {
 	for {
 		if _, ok := visited[current]; !ok && current >= 0 && current < len(tree) {
 			// process
+			visited[current] = true
 			switch tree[current].operator {
 			case "+":
-				value += tree[current].value
+				if value <= (math.MaxInt - tree[current].value) {
+					value += tree[current].value
+				} else {
+					// backtrack
+					parent := (current - 1) / 3
+					current = parent
+					continue
+				}
 			case "*":
-				value *= tree[current].value
+				if value <= (math.MaxInt / tree[current].value) {
+					value *= tree[current].value
+				} else {
+					// backtrack
+					parent := (current - 1) / 3
+					current = parent
+					continue
+				}
+			case "||":
+				joined, err := join(value, tree[current].value)
+				if err != nil {
+					// backtrack
+					parent := (current - 1) / 3
+					current = parent
+					continue
+				}
+				value = joined
 			}
-			visited[current] = true
 		}
-		left := (2 * current) + 1
-		right := (2 * current) + 2
-		if left >= len(tree) && right >= len(tree) {
+		left := (3 * current) + 1
+		middle := (3 * current) + 2
+		right := (3 * current) + 3
+		if left >= len(tree) && right >= len(tree) && middle >= len(tree) {
 			if value == result {
 				return true
 			}
@@ -71,18 +95,24 @@ func isValidOpTree(tree []Node, result int) bool {
 				break
 			}
 			// backtrack
-			parent := (current - 1) / 2
+			parent := (current - 1) / 3
 			switch tree[current].operator {
 			case "+":
 				value -= tree[current].value
 			case "*":
 				value /= tree[current].value
+			case "||":
+				value = remove(value, tree[current].value)
 			}
 			current = parent
 			continue
 		}
 		if _, ok := visited[left]; !ok {
 			current = left
+			continue
+		}
+		if _, ok := visited[middle]; !ok {
+			current = middle
 			continue
 		}
 		if _, ok := visited[right]; !ok {
@@ -93,16 +123,36 @@ func isValidOpTree(tree []Node, result int) bool {
 			break
 		}
 		// backtrack
-		parent := (current - 1) / 2
+		parent := (current - 1) / 3
 		switch tree[current].operator {
 		case "+":
 			value -= tree[current].value
 		case "*":
 			value /= tree[current].value
+		case "||":
+			value = remove(value, tree[current].value)
 		}
 		current = parent
 	}
 	return false
+}
+
+func join(x, y int) (int, error) {
+	joined := strconv.Itoa(x) + strconv.Itoa(y)
+	z, err := strconv.Atoi(joined)
+	if err != nil {
+		return -1, err
+	}
+	return z, nil
+}
+
+func remove(x, y int) int {
+	left := strconv.Itoa(x)
+	right := strconv.Itoa(y)
+	z := left[:len(left)-len(right)]
+	result, err := strconv.Atoi(z)
+	checkError(err)
+	return result
 }
 
 func main() {
