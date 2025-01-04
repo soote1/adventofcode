@@ -16,7 +16,7 @@ func checkError(err error) {
 
 func splitNumber(x int) (int, int) {
 	y := strconv.Itoa(x)
-	left, err := strconv.Atoi(y[0 : len(y)/2])
+	left, err := strconv.Atoi(y[:len(y)/2])
 	checkError(err)
 	right, err := strconv.Atoi(y[len(y)/2:])
 	checkError(err)
@@ -41,24 +41,32 @@ func transform(x int) []int {
 	return result
 }
 
-func blink(stones []int, count int) []int {
-	transformed := []int{}
-	cache := make(map[int][]int)
-	for range count {
-		for i := range len(stones) {
-			t, ok := cache[stones[i]]
-			if !ok {
-				t = transform(stones[i])
-			}
-			transformed = append(transformed, t...)
-			cache[stones[i]] = t
-		}
-		stones = []int{}
-		stones = append(stones, transformed...)
-		transformed = []int{}
-
+func solve(stones []int, limit int) int {
+	transformed := make(map[int]map[int]int)
+	transformed[0] = make(map[int]int)
+	for i := range stones {
+		transformed[0][stones[i]] = 1
 	}
-	return stones
+	for i := range limit {
+		for s, c := range transformed[i] {
+			x := transform(s)
+			for j := range x {
+				if _, ok := transformed[i+1]; !ok {
+					transformed[i+1] = make(map[int]int)
+				}
+				if _, ok := transformed[i+1][x[j]]; ok {
+					transformed[i+1][x[j]] += c
+				} else {
+					transformed[i+1][x[j]] = c
+				}
+			}
+		}
+	}
+	total := 0
+	for _, c := range transformed[limit] {
+		total += c
+	}
+	return total
 }
 
 func main() {
@@ -73,6 +81,6 @@ func main() {
 		checkError(err)
 		stones = append(stones, s)
 	}
-	result := blink(stones, 75)
-	fmt.Println(len(result))
+	answer := solve(stones, 75)
+	fmt.Println(answer)
 }
