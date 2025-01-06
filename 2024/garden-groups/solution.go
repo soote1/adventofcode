@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"sort"
 )
 
 func checkError(err error) {
@@ -66,28 +67,63 @@ func createGardenPlots(farm []string) [][]Position {
 	return gardenPlots
 }
 
+func countWalls(segment []int) int {
+	walls := 1
+	sort.Slice(segment, func(i, j int) bool {
+		return segment[i] < segment[j]
+	})
+	for i := 0; i < len(segment)-1; i++ {
+		if (segment[i+1] - segment[i]) > 1 {
+			walls += 1
+		}
+	}
+	return walls
+}
+
+type Wall struct {
+	id        int
+	direction int
+}
+
 func calculatePrice(farm []string, gardenPlot []Position) int {
 	area := 0
 	perimeter := 0
 	kind := farm[gardenPlot[0].row][gardenPlot[0].column]
 	rowLimit := len(farm)
 	columnLimit := len(farm[0])
+	verticalWalls := make(map[Wall][]int)
+	horizontalWalls := make(map[Wall][]int)
 	for i := range gardenPlot {
 		area += 1
 		if gardenPlot[i].column+1 >= columnLimit || farm[gardenPlot[i].row][gardenPlot[i].column+1] != kind {
+			w := Wall{id: gardenPlot[i].column + 1, direction: 1}
+			verticalWalls[w] = append(verticalWalls[w], gardenPlot[i].row)
 			perimeter += 1
 		}
 		if gardenPlot[i].column-1 < 0 || farm[gardenPlot[i].row][gardenPlot[i].column-1] != kind {
+			w := Wall{id: gardenPlot[i].column - 1, direction: -1}
+			verticalWalls[w] = append(verticalWalls[w], gardenPlot[i].row)
 			perimeter += 1
 		}
 		if gardenPlot[i].row+1 >= rowLimit || farm[gardenPlot[i].row+1][gardenPlot[i].column] != kind {
+			w := Wall{id: gardenPlot[i].row + 1, direction: 1}
+			horizontalWalls[w] = append(horizontalWalls[w], gardenPlot[i].column)
 			perimeter += 1
 		}
 		if gardenPlot[i].row-1 < 0 || farm[gardenPlot[i].row-1][gardenPlot[i].column] != kind {
+			w := Wall{id: gardenPlot[i].row - 1, direction: -1}
+			horizontalWalls[w] = append(horizontalWalls[w], gardenPlot[i].column)
 			perimeter += 1
 		}
 	}
-	return area * perimeter
+	sides := 0
+	for _, segment := range verticalWalls {
+		sides += countWalls(segment)
+	}
+	for _, segment := range horizontalWalls {
+		sides += countWalls(segment)
+	}
+	return area * sides
 }
 
 func main() {
